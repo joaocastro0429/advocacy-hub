@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Pencil, Trash2, User } from "lucide-react";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Plus, Search, Pencil, Trash2, User, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,14 +39,20 @@ export default function Clients() {
     notes: null,
   });
 
-  const filteredClients = clients.filter(
+  // Função para formatar a data automática vinda do banco
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  const filteredClients = clients?.filter(
     (client) =>
-      client.name.toLowerCase().includes(search.toLowerCase()) ||
+      client.name?.toLowerCase().includes(search.toLowerCase()) ||
       client.email?.toLowerCase().includes(search.toLowerCase()) ||
       client.cpf_cnpj?.includes(search)
-  );
+  ) || [];
 
-  const handleOpenDialog = (client?: typeof clients[0]) => {
+  const handleOpenDialog = (client?: any) => {
     if (client) {
       setEditingClient(client.id);
       setFormData({
@@ -80,12 +85,16 @@ export default function Clients() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingClient) {
-      await updateClient.mutateAsync({ id: editingClient, ...formData });
-    } else {
-      await createClient.mutateAsync(formData);
+    try {
+      if (editingClient) {
+        await updateClient.mutateAsync({ id: editingClient, ...formData });
+      } else {
+        await createClient.mutateAsync(formData);
+      }
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error);
     }
-    setIsDialogOpen(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -95,205 +104,222 @@ export default function Clients() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-serif font-bold">Clientes</h1>
-            <p className="text-muted-foreground">Gerencie seus clientes cadastrados</p>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-slate-900">Clientes</h1>
+          <p className="text-muted-foreground">Gerencie sua base de contatos</p>
+        </div>
+        <Button onClick={() => handleOpenDialog()} className="shadow-sm bg-[#1e293b] text-[#fbbf24] hover:bg-slate-800">
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Cliente
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nome, email ou CPF/CNPJ..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10 bg-white shadow-sm focus-visible:ring-slate-400"
+        />
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        {isLoading ? (
+          <div className="p-12 text-center text-muted-foreground italic">Carregando lista de clientes...</div>
+        ) : filteredClients.length === 0 ? (
+          <div className="p-16 text-center">
+            <User className="w-12 h-12 mx-auto text-slate-200 mb-4" />
+            <h3 className="text-lg font-semibold text-slate-800 mb-1">Nenhum cliente por aqui</h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              {search ? "Nenhum resultado para sua busca." : "Adicione seu primeiro cliente para começar."}
+            </p>
+            {!search && (
+              <Button onClick={() => handleOpenDialog()} variant="outline">
+                Adicionar Agora
+              </Button>
+            )}
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Cliente
-          </Button>
-        </div>
+        ) : (
+          <Table>
+            <TableHeader className="bg-slate-50">
+              <TableRow>
+                <TableHead className="font-bold text-slate-700">Nome</TableHead>
+                <TableHead className="font-bold text-slate-700">Contato</TableHead>
+                <TableHead className="font-bold text-slate-700">Documento</TableHead>
+                <TableHead className="font-bold text-slate-700">Cadastro</TableHead>
+                <TableHead className="font-bold text-slate-700">Localização</TableHead>
+                <TableHead className="w-[100px] text-right font-bold text-slate-700 px-6">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredClients.map((client) => (
+                <TableRow key={client.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableCell className="font-semibold text-slate-900">{client.name}</TableCell>
+                  <TableCell className="text-sm">
+                    <div className="flex flex-col">
+                      <span className="text-slate-600">{client.email || "Sem e-mail"}</span>
+                      <span className="text-slate-400 text-xs">{client.phone || "-"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-slate-600">{client.cpf_cnpj || "-"}</TableCell>
+                  
+                  {/* DATA DE CADASTRO AUTOMÁTICA */}
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+                      <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                      {formatDate(client.created_at)}
+                    </div>
+                  </TableCell>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, email ou CPF/CNPJ..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Table */}
-        <div className="bg-card rounded-xl shadow-card overflow-hidden">
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Carregando...</div>
-          ) : filteredClients.length === 0 ? (
-            <div className="p-12 text-center">
-              <User className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="font-semibold mb-2">Nenhum cliente encontrado</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                {search ? "Tente uma busca diferente" : "Comece adicionando seu primeiro cliente"}
-              </p>
-              {!search && (
-                <Button onClick={() => handleOpenDialog()}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Cliente
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>CPF/CNPJ</TableHead>
-                  <TableHead>Cidade</TableHead>
-                  <TableHead className="w-[100px]">Ações</TableHead>
+                  <TableCell className="text-slate-600 text-sm">
+                    {client.city ? `${client.city}/${client.state || ""}` : "-"}
+                  </TableCell>
+                  <TableCell className="px-6">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(client)} className="h-8 w-8 text-slate-400 hover:text-primary">
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(client.id)} className="h-8 w-8 text-slate-400 hover:text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{client.email || "-"}</TableCell>
-                    <TableCell>{client.phone || "-"}</TableCell>
-                    <TableCell className="font-mono text-sm">{client.cpf_cnpj || "-"}</TableCell>
-                    <TableCell>{client.city ? `${client.city}/${client.state}` : "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDialog(client)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(client.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-white shadow-2xl border-none">
           <DialogHeader>
-            <DialogTitle>{editingClient ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">{editingClient ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
             <DialogDescription>
-              Preencha os dados do cliente abaixo
+              Complete as informações cadastrais do cliente.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="name">Nome *</Label>
+          <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="name" className="font-bold text-slate-700">Nome Completo / Razão Social *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white transition-all"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email" className="font-bold text-slate-700">E-mail</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email || ""}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value || null })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
+                <Label htmlFor="phone" className="font-bold text-slate-700">Telefone</Label>
                 <Input
                   id="phone"
                   value={formData.phone || ""}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value || null })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
+                <Label htmlFor="cpf_cnpj" className="font-bold text-slate-700">CPF ou CNPJ</Label>
                 <Input
                   id="cpf_cnpj"
                   value={formData.cpf_cnpj || ""}
                   onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value || null })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="zip_code">CEP</Label>
+                <Label htmlFor="zip_code" className="font-bold text-slate-700">CEP</Label>
                 <Input
                   id="zip_code"
                   value={formData.zip_code || ""}
                   onChange={(e) => setFormData({ ...formData, zip_code: e.target.value || null })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white"
                 />
               </div>
 
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="address">Endereço</Label>
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="address" className="font-bold text-slate-700">Endereço</Label>
                 <Input
                   id="address"
                   value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value || null })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="city">Cidade</Label>
+                <Label htmlFor="city" className="font-bold text-slate-700">Cidade</Label>
                 <Input
                   id="city"
                   value={formData.city || ""}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value || null })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
+                <Label htmlFor="state" className="font-bold text-slate-700">Estado (UF)</Label>
                 <Input
                   id="state"
                   value={formData.state || ""}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value || null })}
                   maxLength={2}
+                  className="bg-slate-50 border-slate-200 focus:bg-white uppercase text-center"
                   placeholder="SP"
                 />
               </div>
 
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="notes">Observações</Label>
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="notes" className="font-bold text-slate-700">Observações Gerais</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes || ""}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value || null })}
+                  className="bg-slate-50 border-slate-200 focus:bg-white"
                   rows={3}
                 />
               </div>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createClient.isPending || updateClient.isPending}>
-                {editingClient ? "Salvar" : "Criar"}
+              <Button 
+                type="submit" 
+                className="px-8 shadow-md bg-[#1e293b] text-[#fbbf24] hover:bg-slate-800"
+                disabled={createClient.isPending || updateClient.isPending}
+              >
+                {editingClient ? "Salvar Alterações" : "Cadastrar Cliente"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </div>
   );
 }

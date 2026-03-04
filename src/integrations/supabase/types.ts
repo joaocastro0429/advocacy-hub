@@ -251,6 +251,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      },
+      petitions: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          process_number: string | null
+          client_name: string
+          type: string
+          status: string
+          content_summary: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          process_number?: string | null
+          client_name: string
+          type: string
+          status: string
+          content_summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          process_number?: string | null
+          client_name?: string
+          type?: string
+          status?: string
+          content_summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petitions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {

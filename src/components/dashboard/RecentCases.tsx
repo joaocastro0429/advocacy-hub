@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface Case {
   id: string;
@@ -73,6 +74,7 @@ const statusConfig = {
 };
 
 export function RecentCases() {
+  const navigate = useNavigate();
   return (
     <div className="bg-card rounded-xl shadow-card">
       <div className="p-6 border-b border-border">
@@ -85,7 +87,9 @@ export function RecentCases() {
               Últimas atualizações dos seus processos
             </p>
           </div>
-          <button className="text-sm font-medium text-accent hover:underline">
+          <button 
+            onClick={() => navigate("/processos")}
+            className="text-sm font-medium text-accent hover:underline transition-all">
             Ver todos
           </button>
         </div>

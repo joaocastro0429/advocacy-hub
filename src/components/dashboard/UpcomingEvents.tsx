@@ -1,4 +1,5 @@
 import { Calendar, Clock, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Event {
   id: string;
@@ -56,6 +57,7 @@ const typeConfig = {
 };
 
 export function UpcomingEvents() {
+  const navigate = useNavigate();
   return (
     <div className="bg-card rounded-xl shadow-card">
       <div className="p-6 border-b border-border">
@@ -76,6 +78,7 @@ export function UpcomingEvents() {
             key={event.id}
             className="flex items-start gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer animate-slide-in"
             style={{ animationDelay: `${index * 50}ms` }}
+            onClick={() => navigate("/calendar")} // Dica: Clicar no evento também pode levar à agenda
           >
             <div
               className={`w-1 h-full min-h-[60px] rounded-full ${typeConfig[event.type].color}`}
@@ -100,7 +103,11 @@ export function UpcomingEvents() {
       </div>
 
       <div className="p-4 pt-0">
-        <button className="w-full py-2 text-sm font-medium text-accent hover:bg-accent/5 rounded-lg transition-colors">
+        {/* 3. Adicione o onClick chamando a rota da sua agenda */}
+        <button 
+          onClick={() => navigate("/Agenda")} 
+          className="w-full py-2 text-sm font-medium text-accent hover:bg-accent/5 rounded-lg transition-colors"
+        >
           Ver agenda completa
         </button>
       </div>
